@@ -10,23 +10,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-// --- Function Prototypes ---
-
-// Board display and game status
-void print_board(int board[], int DIM);
-
-// Win condition helpers
-void fill_win_array(int **winArray, int dim);
-int check_win(int board[], int **winArray, int winCount, int dim, int currentPlayer);
-int check_play(int board[], int size, int playerMove);
-
-// Input handling
-int get_input();
-
-// Clear screen
-void clear_screen();
-
-
 // --- Function Definitions ---
 
 void print_board(int board[], int DIM) {
