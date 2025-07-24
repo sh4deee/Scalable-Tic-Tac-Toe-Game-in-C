@@ -2,7 +2,7 @@
  * Scalable Tic Tac Toe Game in C
  *
  * Author: Abdelrahman Khalid
- * Date: July 23, 2025
+ * Date: July 2025
  *
 */
 
@@ -11,6 +11,23 @@
 #include <stdbool.h>
 
 // --- Function Definitions ---
+
+int get_input() {
+    int input;
+    while (scanf("%d", &input) != 1) {
+        while (getchar() != '\n');  // Clear invalid input
+        printf("Invalid input, please enter a number: ");
+    }
+    return input;
+}
+
+void clear_screen() {
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
+}
 
 void print_board(int board[], int DIM) {
     int size = DIM * DIM;
@@ -35,7 +52,7 @@ void print_board(int board[], int DIM) {
             if ((i + 1) != size) {
                 for (int j = 0; j < DIM; j++) {
                     printf("---");    // 3 dashes for each cell width
-                    if (j != DIM -1)
+                    if (j != DIM - 1)
                         printf("+"); // plus signs between columns
                 }
                 printf("\n");
@@ -44,21 +61,7 @@ void print_board(int board[], int DIM) {
     }
 }
 
-int get_input() {
-    int input;
-    scanf("%d", &input);
-    return input - 1;  // So user enters 1–9 instead of 0–8
-}
-
-void clear_screen() {
-    #ifdef _WIN32
-        system("cls");
-    #else
-        system("clear");
-    #endif
-}
-
-
+// Fill the winArray with all winning combinations (rows, columns, diagonals)
 void fill_win_array(int **winArray, int dim) {
     int count = 0;
 
@@ -91,9 +94,9 @@ void fill_win_array(int **winArray, int dim) {
     count++;
 }
 
-
+// Check if currentPlayer has a winning line
 int check_win(int board[], int **winArray, int winCount, int dim, int currentPlayer) {
-    for (int i = 0; i < 2 * dim + 2; ++i) {
+    for (int i = 0; i < winCount; ++i) {
         bool win = true;
         for (int j = 0; j < dim; ++j) {
             if (board[winArray[i][j]] != currentPlayer) {
@@ -105,31 +108,66 @@ int check_win(int board[], int **winArray, int winCount, int dim, int currentPla
     }
     return 0; // No win
 }
-int check_play(int board[], int size, int playerMove) {
-    if (playerMove < 0 || playerMove >= size) return 0;
-    if (board[playerMove] != 0) return 0;
-    return 1;
+
+// Check if the board is full without any winner
+bool is_draw(int board[], int size) {
+    for (int i = 0; i < size; ++i) {
+        if (board[i] == 0) return false;  // Empty cell found, not a draw
+    }
+    return true;  // No empty cells, draw
+}
+
+// Check if a move is valid (inside range and empty)
+bool check_play(int board[], int size, int playerMove) {
+    if (playerMove < 0 || playerMove >= size) return false;
+    if (board[playerMove] != 0) return false;
+    return true;
 }
 
 int main() {
     int DIM;
-    printf("Enter board size (e.g., 3 for 3x3): ");
-    DIM = get_input() + 1;
+
+    // Get board size with validation (3 to 10)
+    do {
+        printf("Enter board size (3-10): ");
+        DIM = get_input();
+        if (DIM < 3 || DIM > 10) {
+            printf("Invalid size. Please enter a number between 3 and 10.\n");
+        }
+    } while (DIM < 3 || DIM > 10);
+
     int SIZE = DIM * DIM;
 
-    // Allocate board dynamically
+    // Allocate board dynamically and check for success
     int *board = calloc(SIZE, sizeof(int));
-
-    // Total win combinations = 2 * DIM + 2
-    int winCount = 2 * DIM + 2;
-
-    // Allocate 2D win array
-    int **winArray = malloc(winCount * sizeof(int *));
-    for (int i = 0; i < winCount; i++) {
-        winArray[i] = malloc(DIM * sizeof(int));
+    if (!board) {
+        fprintf(stderr, "Memory allocation failed for board\n");
+        exit(EXIT_FAILURE);
     }
 
-    // Fill winning combinations
+    // Total winning combinations = 2 * DIM + 2
+    int winCount = 2 * DIM + 2;
+
+    // Allocate 2D win array and check allocation
+    int **winArray = malloc(winCount * sizeof(int *));
+    if (!winArray) {
+        fprintf(stderr, "Memory allocation failed for winArray\n");
+        free(board);
+        exit(EXIT_FAILURE);
+    }
+    for (int i = 0; i < winCount; i++) {
+        winArray[i] = malloc(DIM * sizeof(int));
+        if (!winArray[i]) {
+            fprintf(stderr, "Memory allocation failed for winArray[%d]\n", i);
+            // Free previously allocated rows
+            for (int k = 0; k < i; k++)
+                free(winArray[k]);
+            free(winArray);
+            free(board);
+            exit(EXIT_FAILURE);
+        }
+    }
+
     fill_win_array(winArray, DIM);
 
     int currentPlayer = 1;
@@ -139,29 +177,32 @@ int main() {
         printf("\n\tTic Tac Toe\n\nPlayer 1 (X) - Player 2 (O)\n\n");
         print_board(board, DIM);
 
-        printf("\nplayer %d enter your choice: ", currentPlayer);
-
-        int playerMove = get_input();
+        printf("\nPlayer %d, enter your choice (1-%d): ", currentPlayer, SIZE);
+        int playerMove = get_input() - 1;  // Convert to zero-based index
 
         if (check_play(board, SIZE, playerMove)) {
             board[playerMove] = currentPlayer;
-        } else {
-            continue;
-        }
+        } else continue;
 
-        // Check if current player won BEFORE switching
         if (check_win(board, winArray, winCount, DIM, currentPlayer)) {
             clear_screen();
             printf("\n\tTic Tac Toe\n\nPlayer 1 (X) - Player 2 (O)\n\n");
             print_board(board, DIM);
-            printf("\nplayer %d won!\n", currentPlayer);
+            printf("\nPlayer %d won!\n", currentPlayer);
             break;
         }
 
-        // Now switch turn
+        if (is_draw(board, SIZE)) {
+            clear_screen();
+            printf("\n\tTic Tac Toe\n\nPlayer 1 (X) - Player 2 (O)\n\n");
+            print_board(board, DIM);
+            printf("\nIt's a draw!\n");
+            break;
+        }
+
+        // Switch turn
         currentPlayer = (currentPlayer == 1) ? 2 : 1;
     }
-
 
     // Free memory
     for (int i = 0; i < winCount; i++) {
@@ -172,4 +213,3 @@ int main() {
 
     return 0;
 }
-
