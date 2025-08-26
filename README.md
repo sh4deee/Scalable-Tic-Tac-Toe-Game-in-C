@@ -9,7 +9,7 @@ This is a simple terminal-based Tic Tac Toe game written in C. It allows custom 
 - Minimal use of external libraries (only standard C)
 
 ## Purpose
-This was my first real C project. It’s not polished or optimized — it was made purely to practice core concepts and get more familiar with the C language.
+This is my first real C project. It’s not polished or optimized — it was made purely to practice core concepts and get more familiar with the C language.
 
 ## How to Compile
 ```bash
